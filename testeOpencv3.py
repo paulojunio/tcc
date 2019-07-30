@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 cap = cv2.VideoCapture("teste.flv")
-substractor = cv2.createBackgroundSubtractorMOG2()
+substractor = cv2.createBackgroundSubtractorMOG2(history=1, varThreshold=50, detectShadows = False)
 # Get the Default resolutions
 frame_width = int(cap.get(3))
 frame_height = int(cap.get(4))
