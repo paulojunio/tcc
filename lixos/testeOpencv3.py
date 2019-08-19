@@ -18,7 +18,6 @@ while(cap.isOpened()):
         mask = substractor.apply(frame)
         # write the  frame
         frame_out = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-        out.write(frame_out)
 
         cv2.imshow('frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
