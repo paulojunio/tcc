@@ -1,12 +1,26 @@
+# Trabalho de conclusao de curso -- PUC Minas
+# Aluno: Paulo Junio -- 565544 -- pjrrodrigues@sga.pucminas.br
+# Orientador: Alexei Machado -- alexeimcmachado@gmail.com
+# Nome do Trabalho...
+# Breve Explicao...
+
 import cv2
 import numpy as np
 
 
 capturaDoVideo = cv2.VideoCapture("videoplayback.mp4")
 substractor = cv2.createBackgroundSubtractorMOG2(
-    history=1, varThreshold=10, detectShadows=False)
+    history=30, varThreshold=16, detectShadows=False)
 
-while (1):
+larguraDoQuadro = int(capturaDoVideo.get(3))
+alturaDoQuadro = int(capturaDoVideo.get(4))
+
+# Define o codec do video e seu nome
+saida = cv2.VideoWriter('outputECG.avi', cv2.VideoWriter_fourcc(
+    'M', 'J', 'P', 'G'), 30, (larguraDoQuadro, alturaDoQuadro))
+
+while (capturaDoVideo.isOpened()):
+
     # Pegando os quadros do video
     _, quadro = capturaDoVideo.read()
 
@@ -18,19 +32,31 @@ while (1):
     nivelBaixoVerde = np.array([60 - grau, 100, 100])
     nivelAltoVerde = np.array([60 + grau, 255, 255])
 
-    # Threshold the HSV image to get only blue colors
+    # Limite das cores que serao aceitas
     mascaraCor = cv2.inRange(hsv, nivelBaixoVerde, nivelAltoVerde)
 
-    # Bitwise-AND mask and original image
+    # Aplicando uma soma com o quadro original com a mascara criada de cor
     res = cv2.bitwise_and(quadro, quadro, mask=mascaraCor)
 
-    quadroFinal = substractor.apply(res)
+    # Aplicando um fitro Gaussiano para tirar ruidos
+    quadroCinza = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+    quadroCinza = cv2.GaussianBlur(quadroCinza, (5, 5), 0)
 
+    # Quadro final com a aplicao do algoritmo mog2
+    quadroFinal = substractor.apply(quadroCinza)
+
+    # Modo para gravar o video...
+    quadroFinalVideo = cv2.cvtColor(quadroFinal, cv2.COLOR_GRAY2RGB)
+    saida.write(quadroFinalVideo)
+
+    # Renderizacao dos dois quadros, original e final
     cv2.imshow('Video Original', quadro)
     cv2.imshow('Tela Final', quadroFinal)
 
-    k = cv2.waitKey(30) & 0xFF
+    k = cv2.waitKey(10) & 0xFF
     if k == 27:
         break
 
+capturaDoVideo.release()
+saida.release()
 cv2.destroyAllWindows()
