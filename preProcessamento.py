@@ -18,22 +18,27 @@ alturaDoQuadro = int(capturaDoVideo.get(4))
 # Define o codec do video e seu nome
 saida = cv2.VideoWriter('outputECG.avi', cv2.VideoWriter_fourcc(
     'M', 'J', 'P', 'G'), 30, (larguraDoQuadro, alturaDoQuadro))
-# Select ROI
-#_, primeiroQuadro = capturaDoVideo.read()
-#r = cv2.selectROI(primeiroQuadro, False, False)
-# Crop image
+
+flag = 1
+retangulo = None
 
 while (capturaDoVideo.isOpened()):
 
-    # Pegando os quadros do video
     _, quadro = capturaDoVideo.read()
+    if flag:
+        # Selecionar o ROI
+        retangulo = cv2.selectROI(quadro)
+        flag = 0
 
+    # print(retangulo)
     # Pegando somente um parte do video
-    #r = cv2.selectROI(quadro, False, False)
-    #quadro = quadro[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
+    x, y, w, h = retangulo
+    cv2.rectangle(quadro, (x, y), (x+w, y+h), (255, 0, 0), 2)
+    quadroRecortado = np.zeros_like(quadro)
+    quadroRecortado[y:y+h, x:x+w] = quadro[y:y+h, x:x+w]
 
     # Transformando BGR para HSV
-    hsv = cv2.cvtColor(quadro, cv2.COLOR_BGR2HSV)
+    hsv = cv2.cvtColor(quadroRecortado, cv2.COLOR_BGR2HSV)
 
     # Colocar range das cores escolhidas
     grau = 15
@@ -44,7 +49,7 @@ while (capturaDoVideo.isOpened()):
     mascaraCor = cv2.inRange(hsv, nivelBaixoVerde, nivelAltoVerde)
 
     # Aplicando uma soma com o quadro original com a mascara criada de cor
-    res = cv2.bitwise_and(quadro, quadro, mask=mascaraCor)
+    res = cv2.bitwise_and(quadroRecortado, quadroRecortado, mask=mascaraCor)
 
     # Aplicando um fitro Gaussiano para tirar ruidos
     #quadroCinza = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
