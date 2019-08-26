@@ -59,12 +59,28 @@ while (capturaDoVideo.isOpened()):
     #quadroFinal = substractor.apply(quadroCinza)
     quadroFinal = substractor.apply(res)
 
+    (contornos, hierarquia) = cv2.findContours(
+        quadroFinal.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # looping for contours
+    for c in contornos:
+        # print(cv2.contourArea(c))
+        if cv2.contourArea(c) < 10:
+            continue
+
+        # get bounding box from countour
+        print(cv2.boundingRect(c))
+        (x, y, w, h) = cv2.boundingRect(c)
+
+        # draw bounding box
+        cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
     # Modo para gravar o video...
-    quadroFinalVideo = cv2.cvtColor(quadroFinal, cv2.COLOR_GRAY2RGB)
-    saida.write(quadroFinalVideo)
+    #quadroFinalVideo = cv2.cvtColor(quadroFinal, cv2.COLOR_GRAY2RGB)
+    # saida.write(quadroFinalVideo)
 
     # Renderizacao dos dois quadros, original e final
-    cv2.imshow('Video Original', quadro)
+    cv2.imshow('Video Original', res)
     cv2.imshow('Tela Final', quadroFinal)
 
     k = cv2.waitKey(10) & 0xFF
