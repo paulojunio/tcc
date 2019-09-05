@@ -6,6 +6,7 @@
 
 import cv2
 import numpy as np
+import imutils
 
 
 capturaDoVideo = cv2.VideoCapture("inputECG.mp4")
@@ -21,6 +22,8 @@ saida = cv2.VideoWriter('outputECG.avi', cv2.VideoWriter_fourcc(
 
 flag = 1
 retangulo = None
+pontoEsquerda = 0
+teste = 0
 
 while (capturaDoVideo.isOpened()):
 
@@ -59,25 +62,49 @@ while (capturaDoVideo.isOpened()):
     #quadroFinal = substractor.apply(quadroCinza)
     quadroFinal = substractor.apply(res)
 
-    (contornos, hierarquia) = cv2.findContours(
-        quadroFinal.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contornos = cv2.findContours(quadroFinal.copy(), cv2.RETR_EXTERNAL,
+                                 cv2.CHAIN_APPROX_SIMPLE)
+    contornos = imutils.grab_contours(contornos)
+    numeroDeSegmentos = 0
 
+    pontoEsquerda = 0
+    cXFull = 10000
+    cYFull = 10000
+    teste += 1
+    for c in contornos:
+        numeroDeSegmentos += 1
     # looping for contours
     for c in contornos:
+        if (numeroDeSegmentos > 50):
+            continue
         # print(cv2.contourArea(c))
-        if cv2.contourArea(c) < 10:
+        if cv2.contourArea(c) < 8:
             continue
 
+        M = cv2.moments(c)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        if(pontoEsquerda == 1):
+            #print("Entro", cX, ' ', cXFull)
+            if(cX > cXFull):
+               # print("ferrou")
+                continue
+
+        cXFull = cX
+        cYFull = cY
+        pontoEsquerda = 1
         # get bounding box from countour
-        print(cv2.boundingRect(c))
-        (x, y, w, h) = cv2.boundingRect(c)
+        #(x, y, w, h) = cv2.boundingRect(c)
 
         # draw bounding box
-        cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        #cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        #cv2.drawContours(res, c, -1, (0, 255, 0), 3)
+
+    cv2.circle(res, (cXFull, cYFull), 3, (0, 0, 255), -1)
 
     # Modo para gravar o video...
-    #quadroFinalVideo = cv2.cvtColor(quadroFinal, cv2.COLOR_GRAY2RGB)
-    # saida.write(quadroFinalVideo)
+    #quadroFinalVideo = cv2.cvtColor(res, cv2.COLOR_GRAY2RGB)
+    saida.write(res)
 
     # Renderizacao dos dois quadros, original e final
     cv2.imshow('Video Original', res)
