@@ -20,6 +20,7 @@ alturaDoQuadro = int(capturaDoVideo.get(4))
 saida = cv2.VideoWriter('outputECG.avi', cv2.VideoWriter_fourcc(
     'M', 'J', 'P', 'G'), 30, (larguraDoQuadro, alturaDoQuadro))
 
+listaDePontos = []
 flag = 1
 retangulo = None
 pontoEsquerda = 0
@@ -27,93 +28,129 @@ teste = 0
 
 while (capturaDoVideo.isOpened()):
 
-    _, quadro = capturaDoVideo.read()
+    ret, quadro = capturaDoVideo.read()
     if flag:
         # Selecionar o ROI
         retangulo = cv2.selectROI(quadro)
         flag = 0
+    if ret == True:
+        # print(retangulo)
+        # Pegando somente um parte do video
+        x, y, w, h = retangulo
+        cv2.rectangle(quadro, (x, y), (x+w, y+h), (255, 0, 0), 2)
+        quadroRecortado = np.zeros_like(quadro)
+        quadroRecortado[y:y+h, x:x+w] = quadro[y:y+h, x:x+w]
 
-    # print(retangulo)
-    # Pegando somente um parte do video
-    x, y, w, h = retangulo
-    cv2.rectangle(quadro, (x, y), (x+w, y+h), (255, 0, 0), 2)
-    quadroRecortado = np.zeros_like(quadro)
-    quadroRecortado[y:y+h, x:x+w] = quadro[y:y+h, x:x+w]
+        # Transformando BGR para HSV
+        hsv = cv2.cvtColor(quadroRecortado, cv2.COLOR_BGR2HSV)
 
-    # Transformando BGR para HSV
-    hsv = cv2.cvtColor(quadroRecortado, cv2.COLOR_BGR2HSV)
+        # Colocar range das cores escolhidas
+        grau = 15
+        nivelBaixoVerde = np.array([60 - grau, 100, 100])
+        nivelAltoVerde = np.array([60 + grau, 255, 255])
 
-    # Colocar range das cores escolhidas
-    grau = 15
-    nivelBaixoVerde = np.array([60 - grau, 100, 100])
-    nivelAltoVerde = np.array([60 + grau, 255, 255])
+        # Limite das cores que serao aceitas
+        mascaraCor = cv2.inRange(hsv, nivelBaixoVerde, nivelAltoVerde)
 
-    # Limite das cores que serao aceitas
-    mascaraCor = cv2.inRange(hsv, nivelBaixoVerde, nivelAltoVerde)
+        # Aplicando uma soma com o quadro original com a mascara criada de cor
+        res = cv2.bitwise_and(
+            quadroRecortado, quadroRecortado, mask=mascaraCor)
 
-    # Aplicando uma soma com o quadro original com a mascara criada de cor
-    res = cv2.bitwise_and(quadroRecortado, quadroRecortado, mask=mascaraCor)
+        # Aplicando um fitro Gaussiano para tirar ruidos
+        #quadroCinza = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+        #quadroCinza = cv2.GaussianBlur(quadroCinza, (5, 5), 0)
 
-    # Aplicando um fitro Gaussiano para tirar ruidos
-    #quadroCinza = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-    #quadroCinza = cv2.GaussianBlur(quadroCinza, (5, 5), 0)
+        # Quadro final com a aplicao do algoritmo mog2
+        #quadroFinal = substractor.apply(quadroCinza)
+        quadroFinal = substractor.apply(res)
 
-    # Quadro final com a aplicao do algoritmo mog2
-    #quadroFinal = substractor.apply(quadroCinza)
-    quadroFinal = substractor.apply(res)
+        contornos = cv2.findContours(quadroFinal.copy(), cv2.RETR_EXTERNAL,
+                                     cv2.CHAIN_APPROX_SIMPLE)
+        contornos = imutils.grab_contours(contornos)
+        numeroDeSegmentos = 0
 
-    contornos = cv2.findContours(quadroFinal.copy(), cv2.RETR_EXTERNAL,
-                                 cv2.CHAIN_APPROX_SIMPLE)
-    contornos = imutils.grab_contours(contornos)
-    numeroDeSegmentos = 0
-
-    pontoEsquerda = 0
-    cXFull = 10000
-    cYFull = 10000
-    teste += 1
-    for c in contornos:
-        numeroDeSegmentos += 1
-    # looping for contours
-    for c in contornos:
-        if (numeroDeSegmentos > 50):
-            continue
-        # print(cv2.contourArea(c))
-        if cv2.contourArea(c) < 8:
-            continue
-
-        M = cv2.moments(c)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-        if(pontoEsquerda == 1):
-            #print("Entro", cX, ' ', cXFull)
-            if(cX > cXFull):
-               # print("ferrou")
+        pontoEsquerda = 0
+        cXFull = 10000
+        cYFull = 10000
+        teste += 1
+        for c in contornos:
+            numeroDeSegmentos += 1
+        # looping for contours
+        for c in contornos:
+            if (numeroDeSegmentos > 50):
+                continue
+            # print(cv2.contourArea(c))
+            if cv2.contourArea(c) < 8:
                 continue
 
-        cXFull = cX
-        cYFull = cY
-        pontoEsquerda = 1
-        # get bounding box from countour
-        #(x, y, w, h) = cv2.boundingRect(c)
+            M = cv2.moments(c)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            if(pontoEsquerda == 1):
+                #print("Entro", cX, ' ', cXFull)
+                if(cX > cXFull):
+                    # print("ferrou")
+                    continue
 
-        # draw bounding box
-        #cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        #cv2.drawContours(res, c, -1, (0, 255, 0), 3)
+            cXFull = cX
+            cYFull = cY
+            pontoEsquerda = 1
+            # get bounding box from countour
+            #(x, y, w, h) = cv2.boundingRect(c)
 
-    cv2.circle(res, (cXFull, cYFull), 3, (0, 0, 255), -1)
+            # draw bounding box
+            #cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            #cv2.drawContours(res, c, -1, (0, 255, 0), 3)
 
-    # Modo para gravar o video...
-    #quadroFinalVideo = cv2.cvtColor(res, cv2.COLOR_GRAY2RGB)
-    saida.write(res)
+        cv2.circle(res, (cXFull, cYFull), 3, (0, 0, 255), -1)
+        if cXFull != 10000:
+            listaDePontos.append([cXFull, cYFull])
 
-    # Renderizacao dos dois quadros, original e final
-    cv2.imshow('Video Original', res)
-    cv2.imshow('Tela Final', quadroFinal)
+        # Modo para gravar o video...
+        #quadroFinalVideo = cv2.cvtColor(res, cv2.COLOR_GRAY2RGB)
+        saida.write(res)
 
-    k = cv2.waitKey(10) & 0xFF
-    if k == 27:
+        # Renderizacao dos dois quadros, original e final
+        cv2.imshow('Video Original', res)
+        cv2.imshow('Tela Final', quadroFinal)
+
+        k = cv2.waitKey(10) & 0xFF
+        if k == 27:
+            break
+    else:
         break
+
+#print(listaDePontos[2], 'tamanho : ', len(listaDePontos))
+x, y, w, h = retangulo
+numeroImagem = 0
+for pontoFlag in range(len(listaDePontos)-1):
+
+    novaImagem = np.zeros(
+        shape=[y+h, x+w], dtype=np.uint8)
+    novaImagem = cv2.cvtColor(novaImagem, cv2.COLOR_BGR2HSV)
+    print('Passo aqui')
+    for ponto in range(len(listaDePontos)-1):
+
+        pontos = listaDePontos[ponto+1]
+
+        pontosAnteriores = listaDePontos[ponto]
+        if(pontos[0] + 150 < pontosAnteriores[0]):
+            break
+
+        cv2.circle(novaImagem, (pontos[0], pontos[y]), 1, (0, 0, 255), -1)
+
+    novaImagem = cv2.cvtColor(novaImagem, cv2.COLOR_BGR2GRAY)
+    nomeImage = 'imageTest' + str(numeroImagem) + '.jpg'
+    cv2.imwrite(nomeImage, novaImagem)
+
 
 capturaDoVideo.release()
 saida.release()
 cv2.destroyAllWindows()
+"""
+imageFlag = 0
+numeroImagens = 0
+while(imageFlag < len(listaDePontos)):
+
+   
+"""
