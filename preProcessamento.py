@@ -9,9 +9,13 @@ import numpy as np
 import imutils
 
 
+def custom_sort(t):
+    return t[0]
+
+
 capturaDoVideo = cv2.VideoCapture("inputECG.mp4")
 substractor = cv2.createBackgroundSubtractorMOG2(
-    history=30, varThreshold=16, detectShadows=False)
+    history=35, varThreshold=16, detectShadows=False)
 
 larguraDoQuadro = int(capturaDoVideo.get(3))
 alturaDoQuadro = int(capturaDoVideo.get(4))
@@ -57,11 +61,11 @@ while (capturaDoVideo.isOpened()):
             quadroRecortado, quadroRecortado, mask=mascaraCor)
 
         # Aplicando um fitro Gaussiano para tirar ruidos
-        #quadroCinza = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-        #quadroCinza = cv2.GaussianBlur(quadroCinza, (5, 5), 0)
+        # quadroCinza = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+        # quadroCinza = cv2.GaussianBlur(quadroCinza, (5, 5), 0)
 
         # Quadro final com a aplicao do algoritmo mog2
-        #quadroFinal = substractor.apply(quadroCinza)
+        # quadroFinal = substractor.apply(quadroCinza)
         quadroFinal = substractor.apply(res)
 
         contornos = cv2.findContours(quadroFinal.copy(), cv2.RETR_EXTERNAL,
@@ -87,7 +91,7 @@ while (capturaDoVideo.isOpened()):
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
             if(pontoEsquerda == 1):
-                #print("Entro", cX, ' ', cXFull)
+                # print("Entro", cX, ' ', cXFull)
                 if(cX > cXFull):
                     # print("ferrou")
                     continue
@@ -96,18 +100,18 @@ while (capturaDoVideo.isOpened()):
             cYFull = cY
             pontoEsquerda = 1
             # get bounding box from countour
-            #(x, y, w, h) = cv2.boundingRect(c)
+            # (x, y, w, h) = cv2.boundingRect(c)
 
             # draw bounding box
-            #cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            #cv2.drawContours(res, c, -1, (0, 255, 0), 3)
+            # cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            # cv2.drawContours(res, c, -1, (0, 255, 0), 3)
 
         cv2.circle(res, (cXFull, cYFull), 3, (0, 0, 255), -1)
         if cXFull != 10000:
             listaDePontos.append([cXFull, cYFull])
 
         # Modo para gravar o video...
-        #quadroFinalVideo = cv2.cvtColor(res, cv2.COLOR_GRAY2RGB)
+        # quadroFinalVideo = cv2.cvtColor(res, cv2.COLOR_GRAY2RGB)
         saida.write(res)
 
         # Renderizacao dos dois quadros, original e final
@@ -120,28 +124,50 @@ while (capturaDoVideo.isOpened()):
     else:
         break
 
-#print(listaDePontos[2], 'tamanho : ', len(listaDePontos))
+# print(listaDePontos[2], 'tamanho : ', len(listaDePontos))
 x, y, w, h = retangulo
 numeroImagem = 0
-for pontoFlag in range(len(listaDePontos)-1):
+flagImagem = 2
+
+while(True):
 
     novaImagem = np.zeros(
-        shape=[y+h, x+w], dtype=np.uint8)
-    novaImagem = cv2.cvtColor(novaImagem, cv2.COLOR_BGR2HSV)
-    print('Passo aqui')
-    for ponto in range(len(listaDePontos)-1):
+        (y+h, x+w, 3), dtype=np.uint8)
+    # novaImagem = cv2.cvtColor(novaImagem, cv2.COLOR_BGR2HSV)
+    aux = flagImagem
+    listAux = []
+    # print('Passo aqui ', flagImagem)
+    for ponto in range(len(listaDePontos)-aux):
 
-        pontos = listaDePontos[ponto+1]
-
-        pontosAnteriores = listaDePontos[ponto]
+        pontos = listaDePontos[ponto+aux]
+        flagImagem += 1
+        pontosAnteriores = listaDePontos[ponto+aux-1]
+        listAux.append(pontos)
         if(pontos[0] + 150 < pontosAnteriores[0]):
+            # print(pontos[0], ' ', pontosAnteriores[0])
             break
 
-        cv2.circle(novaImagem, (pontos[0], pontos[y]), 1, (0, 0, 255), -1)
+        # cv2.circle(novaImagem, (pontos[0], pontos[1]), 1, (0, 0, 255), -1)
 
-    novaImagem = cv2.cvtColor(novaImagem, cv2.COLOR_BGR2GRAY)
+        cv2.line(novaImagem, (pontosAnteriores[0], pontosAnteriores[1]),
+                 (pontos[0], pontos[1]), (0, 0, 255), 2)
+
+    """
+    print(len(listAux))
+    listAux.sort(key=custom_sort)
+
+    for ponto in range(len(listAux) - 1):
+        pontos = listAux[ponto+1]
+        pontosAnteriores = listAux[ponto-1]
+        cv2.line(novaImagem, (pontosAnteriores[0], pontosAnteriores[1]),
+                 (pontos[0], pontos[1]), (0, 0, 255), 2)
+    """
     nomeImage = 'imageTest' + str(numeroImagem) + '.jpg'
+    numeroImagem += 1
     cv2.imwrite(nomeImage, novaImagem)
+
+    if(flagImagem >= len(listaDePontos)):
+        break
 
 
 capturaDoVideo.release()
@@ -151,6 +177,4 @@ cv2.destroyAllWindows()
 imageFlag = 0
 numeroImagens = 0
 while(imageFlag < len(listaDePontos)):
-
-   
 """
