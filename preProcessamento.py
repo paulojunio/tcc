@@ -15,7 +15,7 @@ def custom_sort(t):
 
 capturaDoVideo = cv2.VideoCapture("inputECG.mp4")
 substractor = cv2.createBackgroundSubtractorMOG2(
-    history=35, varThreshold=16, detectShadows=False)
+    history=30, varThreshold=16, detectShadows=False)
 
 larguraDoQuadro = int(capturaDoVideo.get(3))
 alturaDoQuadro = int(capturaDoVideo.get(4))
@@ -62,12 +62,16 @@ while (capturaDoVideo.isOpened()):
 
         # Aplicando um fitro Gaussiano para tirar ruidos
         # quadroCinza = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-        # quadroCinza = cv2.GaussianBlur(quadroCinza, (5, 5), 0)
+        # quadroCinza = cv2.GaussianBlur(quadroCinza, (3, 3), 0)
 
         # Quadro final com a aplicao do algoritmo mog2
         # quadroFinal = substractor.apply(quadroCinza)
         quadroFinal = substractor.apply(res)
-
+        """
+        quadroFinal = cv2.dilate(quadroFinal, None, iterations=1) 
+        quadroFinal = cv2.erode(quadroFinal, None, iterations=1) 
+        """
+        
         contornos = cv2.findContours(quadroFinal.copy(), cv2.RETR_EXTERNAL,
                                      cv2.CHAIN_APPROX_SIMPLE)
         contornos = imutils.grab_contours(contornos)
@@ -84,7 +88,7 @@ while (capturaDoVideo.isOpened()):
             if (numeroDeSegmentos > 50):
                 continue
             # print(cv2.contourArea(c))
-            if cv2.contourArea(c) < 8:
+            if cv2.contourArea(c) < 5:
                 continue
 
             M = cv2.moments(c)
@@ -147,10 +151,10 @@ while(True):
             # print(pontos[0], ' ', pontosAnteriores[0])
             break
 
-        # cv2.circle(novaImagem, (pontos[0], pontos[1]), 1, (0, 0, 255), -1)
+        cv2.circle(novaImagem, (pontos[0], pontos[1]), 1, (0, 0, 255), -1)
 
-        cv2.line(novaImagem, (pontosAnteriores[0], pontosAnteriores[1]),
-                 (pontos[0], pontos[1]), (0, 0, 255), 2)
+        #cv2.line(novaImagem, (pontosAnteriores[0], pontosAnteriores[1]),
+        #         (pontos[0], pontos[1]), (0, 0, 255), 2)
 
     """
     print(len(listAux))
