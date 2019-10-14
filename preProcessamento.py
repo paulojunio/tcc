@@ -8,12 +8,14 @@ import cv2
 import numpy as np
 import imutils
 
-
+# Metodo para ajudar no metodo sort
 def custom_sort(t):
     return t[0]
 
-
+# Entrada do video, Par(Nome do video)
 capturaDoVideo = cv2.VideoCapture("inputECG.mp4")
+
+# Configuracao da substracao de quadros MOG2
 substractor = cv2.createBackgroundSubtractorMOG2(
     history=30, varThreshold=16, detectShadows=False)
 
@@ -25,6 +27,7 @@ saida = cv2.VideoWriter('outputECG.avi', cv2.VideoWriter_fourcc(
     'M', 'J', 'P', 'G'), 30, (larguraDoQuadro, alturaDoQuadro))
 
 listaDePontos = []
+listaDePontosRevisada = []
 flag = 1
 retangulo = None
 pontoEsquerda = 0
@@ -81,9 +84,10 @@ while (capturaDoVideo.isOpened()):
         cXFull = 10000
         cYFull = 10000
         teste += 1
+        # Verifica quantos contornos tem no quadro
         for c in contornos:
             numeroDeSegmentos += 1
-        # looping for contours
+        # Verificar se há muitos seguimentos 
         for c in contornos:
             if (numeroDeSegmentos > 50):
                 continue
@@ -103,14 +107,9 @@ while (capturaDoVideo.isOpened()):
             cXFull = cX
             cYFull = cY
             pontoEsquerda = 1
-            # get bounding box from countour
-            # (x, y, w, h) = cv2.boundingRect(c)
-
-            # draw bounding box
-            # cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            # cv2.drawContours(res, c, -1, (0, 255, 0), 3)
 
         cv2.circle(res, (cXFull, cYFull), 3, (0, 0, 255), -1)
+        # Colocar pontos no vetor de pontos
         if cXFull != 10000:
             listaDePontos.append([cXFull, cYFull])
 
@@ -128,7 +127,17 @@ while (capturaDoVideo.isOpened()):
     else:
         break
 
-# print(listaDePontos[2], 'tamanho : ', len(listaDePontos))
+# Todos os pontos encontrados
+for ponto in listaDePontos:
+    print('x: ', ponto[0], 'y: ', ponto[1])
+'''
+for ponto in range(len(listaDePontos) - 5):
+    pontoAux1 = listaDePontos[ponto] 
+    pontoAux2 = listaDePontos[ponto + 1]
+
+    if(pontoAux1[0] > pontoAux2[0]):
+'''
+print(listaDePontos[2], 'tamanho : ', len(listaDePontos))
 x, y, w, h = retangulo
 numeroImagem = 0
 flagImagem = 2
@@ -140,8 +149,14 @@ while(True):
     # novaImagem = cv2.cvtColor(novaImagem, cv2.COLOR_BGR2HSV)
     aux = flagImagem
     listAux = []
+    contador = 0
     # print('Passo aqui ', flagImagem)
     for ponto in range(len(listaDePontos)-aux):
+
+        if(contador <= 10):
+            contador = contador + 1
+            flagImagem += 1
+            continue
 
         pontos = listaDePontos[ponto+aux]
         flagImagem += 1
@@ -150,26 +165,31 @@ while(True):
         if(pontos[0] + 150 < pontosAnteriores[0]):
             # print(pontos[0], ' ', pontosAnteriores[0])
             break
-
-        cv2.circle(novaImagem, (pontos[0], pontos[1]), 1, (0, 0, 255), -1)
+        """
+        if(pontos[0] < pontosAnteriores[0]):
+            pontoAux = listaDePontos[ponto+aux+5]
+            if(pontoAux[0] < pontosAnteriores[0]):
+                print('Primeiro:', pontos[0], pontoAux[0], pontosAnteriores[0])
+                listAux = []
+        """
+        #cv2.circle(novaImagem, (pontos[0], pontos[1]), 1, (0, 0, 255), -1)
 
         #cv2.line(novaImagem, (pontosAnteriores[0], pontosAnteriores[1]),
         #         (pontos[0], pontos[1]), (0, 0, 255), 2)
 
-    """
+    
     print(len(listAux))
     listAux.sort(key=custom_sort)
 
     for ponto in range(len(listAux) - 1):
         pontos = listAux[ponto+1]
-        pontosAnteriores = listAux[ponto-1]
+        pontosAnteriores = listAux[ponto]
         cv2.line(novaImagem, (pontosAnteriores[0], pontosAnteriores[1]),
                  (pontos[0], pontos[1]), (0, 0, 255), 2)
-    """
+    
     nomeImage = 'imageTest' + str(numeroImagem) + '.jpg'
     numeroImagem += 1
     cv2.imwrite(nomeImage, novaImagem)
-
     if(flagImagem >= len(listaDePontos)):
         break
 
