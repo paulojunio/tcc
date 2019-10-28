@@ -15,9 +15,14 @@ def custom_sort(t):
 # Entrada do video, Par(Nome do video)
 capturaDoVideo = cv2.VideoCapture("inputECG.mp4")
 
-# Configuracao da substracao de quadros MOG2
-substractor = cv2.createBackgroundSubtractorMOG2(
-    history=30, varThreshold=16, detectShadows=False)
+# Configuracao da subtracao de quadros MOG2
+#substractor = cv2.createBackgroundSubtractorMOG2(history=10, varThreshold=10, detectShadows=False)
+
+# Configuracao da subtracao de quadros MOG
+#substractor = cv2.bgsegm.createBackgroundSubtractorMOG(history=10,nmixtures=5,backgroundRatio=0.6,noiseSigma=0)
+
+# Configuracao da subtracao de quadros KNN
+substractor = cv2.createBackgroundSubtractorKNN(history=5, dist2Threshold=1000, detectShadows=False)
 
 larguraDoQuadro = int(capturaDoVideo.get(3))
 alturaDoQuadro = int(capturaDoVideo.get(4))
