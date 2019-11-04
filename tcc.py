@@ -13,16 +13,20 @@ def custom_sort(t):
     return t[0]
 
 # Entrada do video, Par(Nome do video)
-capturaDoVideo = cv2.VideoCapture("inputECG.mp4")
+nomeVideo = "inputECG.mp4"
+capturaDoVideo = cv2.VideoCapture(nomeVideo)
 
 # Configuracao da subtracao de quadros MOG2
-#substractor = cv2.createBackgroundSubtractorMOG2(history=10, varThreshold=10, detectShadows=False)
+# substractor = cv2.createBackgroundSubtractorMOG2(history=5, varThreshold=16, detectShadows=False)
+# nomeAlg = "MOG2"
 
 # Configuracao da subtracao de quadros MOG
-#substractor = cv2.bgsegm.createBackgroundSubtractorMOG(history=10,nmixtures=5,backgroundRatio=0.6,noiseSigma=0)
+substractor = cv2.bgsegm.createBackgroundSubtractorMOG(history=3,nmixtures=5,backgroundRatio=0.6,noiseSigma=0)
+nomeAlg = "MOG"
 
 # Configuracao da subtracao de quadros KNN
-substractor = cv2.createBackgroundSubtractorKNN(history=5, dist2Threshold=1000, detectShadows=False)
+#substractor = cv2.createBackgroundSubtractorKNN(history=5, dist2Threshold=600, detectShadows=False)
+#nomeAlg = "KNN"
 
 larguraDoQuadro = int(capturaDoVideo.get(3))
 alturaDoQuadro = int(capturaDoVideo.get(4))
@@ -57,7 +61,7 @@ while (capturaDoVideo.isOpened()):
         hsv = cv2.cvtColor(quadroRecortado, cv2.COLOR_BGR2HSV)
 
         # Colocar range das cores escolhidas
-        grau = 15
+        grau = 30
         nivelBaixoVerde = np.array([60 - grau, 100, 100])
         nivelAltoVerde = np.array([60 + grau, 255, 255])
 
@@ -113,7 +117,7 @@ while (capturaDoVideo.isOpened()):
             cYFull = cY
             pontoEsquerda = 1
 
-        cv2.circle(res, (cXFull, cYFull), 3, (0, 0, 255), -1)
+        #cv2.circle(res, (cXFull, cYFull), 3, (0, 0, 255), -1)
         # Colocar pontos no vetor de pontos
         if cXFull != 10000:
             listaDePontos.append([cXFull, cYFull])
@@ -158,7 +162,7 @@ while(True):
     # print('Passo aqui ', flagImagem)
     for ponto in range(len(listaDePontos)-aux):
 
-        if(contador <= 10):
+        if(contador <= 1):
             contador = contador + 1
             flagImagem += 1
             continue
@@ -189,10 +193,10 @@ while(True):
     for ponto in range(len(listAux) - 1):
         pontos = listAux[ponto+1]
         pontosAnteriores = listAux[ponto]
-        cv2.line(novaImagem, (pontosAnteriores[0], pontosAnteriores[1]),
-                 (pontos[0], pontos[1]), (0, 0, 255), 2)
+        cv2.line(novaImagem, (pontosAnteriores[0] - x, pontosAnteriores[1]),
+                (pontos[0] - x, pontos[1]), (0, 0, 255), 2)
     
-    nomeImage = 'imageTest' + str(numeroImagem) + '.jpg'
+    nomeImage = 'imageTest' + str(numeroImagem) + "_" + nomeVideo + '_' + nomeAlg + '.jpg'
     numeroImagem += 1
     cv2.imwrite(nomeImage, novaImagem)
     if(flagImagem >= len(listaDePontos)):
