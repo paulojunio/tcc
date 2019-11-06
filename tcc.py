@@ -13,7 +13,9 @@ def custom_sort(t):
     return t[0]
 
 # Entrada do video, Par(Nome do video)
-nomeVideo = "inputECG2.mp4"
+nomeVideo = "inputECG.mp4"
+latencia = 10 #inputECG
+#latencia = 3 # inputECG2
 capturaDoVideo = cv2.VideoCapture(nomeVideo)
 
 # Configuracao da subtracao de quadros MOG2
@@ -162,7 +164,7 @@ while(True):
     # print('Passo aqui ', flagImagem)
     for ponto in range(len(listaDePontos)-aux):
 
-        if(contador <= 1):
+        if(contador <= latencia):
             contador = contador + 1
             flagImagem += 1
             continue
